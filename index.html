@@ -1,151 +1,204 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snack Classifier AI</title>
+    <title>Puff Pastry Recognition - TDD 2026</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
+        :root {
+            --ua-blue: #2196F3; /* Matching University of Antwerp Blue */
+            --ua-dark-blue: #1976D2;
+            --bg-gray: #f4f7f9;
+            --text-main: #2d3748;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            line-height: 1.6;
             display: flex;
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
         }
-        .app-container {
+
+        .container {
+            max-width: 650px;
             width: 100%;
-            max-width: 500px;
             background: white;
-            border-radius: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            border: 1px solid #e2e8f0;
         }
+
         .header {
-            background: #2196F3;
+            background: linear-gradient(135deg, var(--ua-blue), var(--ua-dark-blue));
             color: white;
-            padding: 30px 20px;
+            padding: 40px 30px;
             text-align: center;
         }
-        .main-content { padding: 25px; }
-        .upload-card {
+
+        .header h1 {
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .header p { opacity: 0.9; font-weight: 300; font-size: 0.95rem; }
+
+        .main-content { padding: 30px; }
+
+        .instruction-box {
+            background: #ebf8ff;
+            border-left: 4px solid var(--ua-blue);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .upload-zone {
             border: 2px dashed #cbd5e0;
-            border-radius: 15px;
-            padding: 30px;
+            border-radius: 20px;
+            padding: 40px 20px;
             text-align: center;
             cursor: pointer;
-            transition: 0.3s;
-            background: #f8fafc;
+            transition: all 0.3s ease;
+            background: #fafafa;
         }
-        .upload-card:hover { border-color: #2196F3; background: #eff6ff; }
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+
+        .upload-zone:hover { border-color: var(--ua-blue); background: #f0f7ff; }
+
+        .btn-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
         .btn {
             flex: 1;
-            padding: 15px;
+            padding: 14px;
             border: none;
             border-radius: 12px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
             transition: 0.2s;
             font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .btn-primary { background: #2196F3; color: white; }
-        .btn-webcam { background: #10b981; color: white; }
-        .btn-stop { background: #ef4444; color: white; }
-        
-        #preview-container { margin-top: 20px; text-align: center; }
-        #preview-container img, #webcam-container canvas {
+
+        .btn-file { background: #edf2f7; color: #4a5568; }
+        .btn-webcam { background: var(--ua-blue); color: white; }
+        .btn-stop { background: #e53e3e; color: white; }
+
+        #display-area { margin-top: 25px; text-align: center; }
+        #display-area img, #webcam-container canvas {
             max-width: 100%;
             border-radius: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border: 4px solid white;
         }
-        
-        .results-section {
-            margin-top: 25px;
+
+        .results-panel {
+            margin-top: 30px;
             padding: 20px;
             background: #f8fafc;
             border-radius: 15px;
             display: none;
         }
-        .prediction-bar {
+
+        .result-row {
             display: flex;
             align-items: center;
             margin-bottom: 12px;
         }
-        .label { width: 140px; font-size: 0.9rem; font-weight: 600; }
-        .progress-bg { flex-grow: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 0 10px; }
-        .progress-fill { height: 100%; background: #2196F3; transition: width 0.4s ease-out; }
-        .percent { width: 40px; font-size: 0.85rem; text-align: right; color: #64748b; }
-        
-        #status { text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 10px; }
+
+        .label-name { width: 130px; font-weight: 600; font-size: 0.85rem; color: #4a5568; }
+        .bar-outer { flex-grow: 1; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+        .bar-inner { height: 100%; background: var(--ua-blue); transition: width 0.5s ease; }
+        .percentage { width: 45px; text-align: right; font-size: 0.85rem; font-weight: bold; color: var(--ua-blue); }
+
+        .footer-info {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.75rem;
+            color: #a0aec0;
+            background: #fdfdfd;
+            border-top: 1px solid #edf2f7;
+        }
     </style>
 </head>
 <body>
 
-<div class="app-container">
+<div class="container">
     <div class="header">
-        <h1>🥐 Snack AI</h1>
-        <p>Herken bladerdeeghapjes direct</p>
+        <h1>Puff Pastry Recognition</h1>
+        <p>Technology Driven Design 2025-2026</p>
     </div>
 
     <div class="main-content">
-        <div class="upload-card" onclick="document.getElementById('file-input').click()">
-            <span style="font-size: 2.5rem;">📸</span>
-            <p style="margin-top: 10px; color: #475569;">Klik om een foto te uploaden</p>
+        <div class="instruction-box">
+            <strong>Challenge:</strong> Pastries often look similar, making it difficult to identify fillings[cite: 5]. 
+            Point your camera or upload a photo to classify the filling[cite: 9].
+        </div>
+
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">📷</div>
+            <p>Click to upload a pastry image</p>
             <input type="file" id="file-input" hidden accept="image/*">
         </div>
 
-        <div class="btn-group">
+        <div class="btn-container">
+            <button class="btn btn-file" onclick="document.getElementById('file-input').click()">📂 Open File</button>
             <button class="btn btn-webcam" id="webcam-btn" onclick="toggleWebcam()">🎥 Live Camera</button>
         </div>
 
-        <div id="status">Bezig met laden van AI model...</div>
-
-        <div id="preview-container"></div>
+        <div id="display-area"></div>
         <div id="webcam-container"></div>
 
-        <div id="results" class="results-section">
-            <h3 style="margin-bottom: 15px; color: #1e293b;">Analyse resultaat:</h3>
+        <div id="results" class="results-panel">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Classification Prediction:</h3>
             <div id="label-container"></div>
+            <p style="font-size: 0.75rem; color: #718096; margin-top: 15px;">
+                Note: Accuracy is highest in close-up images[cite: 13].
+            </p>
         </div>
+    </div>
+
+    <div class="footer-info">
+        University of Antwerp | Louise Van Impe | S0224520 [cite: 57, 59]
     </div>
 </div>
 
 <script>
-    // Het pad naar je mapje op GitHub
-    const MODEL_PATH = "./my_model/";
+    const URL = "./my_model/";
+    let model, webcam, labelContainer, isWebcamActive = false;
 
-    let model, webcam, labelContainer, maxPredictions;
-    let isWebcamActive = false;
-
-    // 1. Model laden bij start
     async function init() {
         try {
-            const modelURL = MODEL_PATH + "model.json";
-            const metadataURL = MODEL_PATH + "metadata.json";
-
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
             model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
-            
-            document.getElementById('status').innerText = "✅ Model klaar voor gebruik";
             labelContainer = document.getElementById("label-container");
+            console.log("Model loaded successfully");
         } catch (e) {
-            console.error(e);
-            document.getElementById('status').innerText = "❌ Fout: Modelbestanden niet gevonden.";
-            document.getElementById('status').style.color = "red";
+            alert("Error loading model. Please check the 'my_model' folder.");
         }
     }
 
-    // 2. Foto upload verwerken
     document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if(isWebcamActive) stopWebcam();
 
         const reader = new FileReader();
@@ -153,10 +206,9 @@
             const img = new Image();
             img.src = event.target.result;
             img.onload = async () => {
-                const container = document.getElementById('preview-container');
-                container.innerHTML = '';
-                container.appendChild(img);
-                
+                const area = document.getElementById('display-area');
+                area.innerHTML = '';
+                area.appendChild(img);
                 const prediction = await model.predict(img);
                 displayResults(prediction);
             };
@@ -164,7 +216,6 @@
         reader.readAsDataURL(file);
     });
 
-    // 3. Webcam logica
     async function toggleWebcam() {
         const btn = document.getElementById('webcam-btn');
         if (isWebcamActive) {
@@ -172,7 +223,6 @@
             btn.innerText = "🎥 Live Camera";
             btn.className = "btn btn-webcam";
         } else {
-            btn.innerText = "⌛ Starten...";
             await startWebcam();
             btn.innerText = "🛑 Stop Camera";
             btn.className = "btn btn-stop";
@@ -182,17 +232,14 @@
     async function startWebcam() {
         try {
             isWebcamActive = true;
-            document.getElementById('preview-container').innerHTML = '';
-            
-            // Voor mobiel: gebruik 'facingMode: environment' voor de achtercamera indien beschikbaar
-            webcam = new tmImage.Webcam(400, 400, true); 
+            document.getElementById('display-area').innerHTML = '';
+            webcam = new tmImage.Webcam(400, 400, true);
             await webcam.setup();
             await webcam.play();
-            
             document.getElementById("webcam-container").appendChild(webcam.canvas);
             window.requestAnimationFrame(loop);
         } catch (e) {
-            alert("Webcam niet beschikbaar of geblokkeerd.");
+            alert("Camera access denied.");
             stopWebcam();
         }
     }
@@ -211,26 +258,22 @@
         window.requestAnimationFrame(loop);
     }
 
-    // 4. Resultaten tonen
     function displayResults(predictions) {
         document.getElementById("results").style.display = "block";
         labelContainer.innerHTML = "";
-        
-        // Sorteer: Hoogste waarschijnlijkheid bovenaan
         predictions.sort((a, b) => b.probability - a.probability);
 
         predictions.forEach(p => {
             const score = (p.probability * 100).toFixed(0);
-            if(score > 5) { // Toon alleen resultaten boven 5%
+            if(score > 2) {
                 const html = `
-                    <div class="prediction-bar">
-                        <span class="label">${p.className}</span>
-                        <div class="progress-bg">
-                            <div class="progress-fill" style="width: ${score}%"></div>
+                    <div class="result-row">
+                        <span class="label-name">${p.className}</span>
+                        <div class="bar-outer">
+                            <div class="bar-inner" style="width: ${score}%"></div>
                         </div>
-                        <span class="percent">${score}%</span>
-                    </div>
-                `;
+                        <span class="percentage">${score}%</span>
+                    </div>`;
                 labelContainer.innerHTML += html;
             }
         });
