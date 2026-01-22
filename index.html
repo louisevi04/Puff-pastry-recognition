@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puff Pastry Recognition - TDD 2026</title>
+    <title>Puff Pastry Recognition 🥐</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
         :root {
-            --ua-blue: #2196F3; /* Matching University of Antwerp Blue */
+            --ua-blue: #2196F3;
             --ua-dark-blue: #1976D2;
-            --bg-gray: #f4f7f9;
             --text-main: #2d3748;
         }
 
@@ -18,13 +17,20 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-gray);
             color: var(--text-main);
             line-height: 1.6;
             display: flex;
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
+            
+            /* Checkered Blue Background */
+            background-color: #4facfe;
+            background-image:
+                linear-gradient(45deg, #378bda 25%, transparent 25%, transparent 75%, #378bda 75%, #378bda),
+                linear-gradient(45deg, #378bda 25%, transparent 25%, transparent 75%, #378bda 75%, #378bda);
+            background-position: 0 0, 25px 25px;
+            background-size: 50px 50px;
         }
 
         .container {
@@ -32,9 +38,9 @@
             width: 100%;
             background: white;
             border-radius: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            border: 4px solid white;
         }
 
         .header {
@@ -49,237 +55,14 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 8px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
         }
 
-        .header p { opacity: 0.9; font-weight: 300; font-size: 0.95rem; }
+        .header p { opacity: 0.95; font-weight: 400; font-size: 1rem; }
 
         .main-content { padding: 30px; }
 
         .instruction-box {
             background: #ebf8ff;
-            border-left: 4px solid var(--ua-blue);
-            padding: 15px;
-            margin-bottom: 25px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-        }
-
-        .upload-zone {
-            border: 2px dashed #cbd5e0;
-            border-radius: 20px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #fafafa;
-        }
-
-        .upload-zone:hover { border-color: var(--ua-blue); background: #f0f7ff; }
-
-        .btn-container {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-file { background: #edf2f7; color: #4a5568; }
-        .btn-webcam { background: var(--ua-blue); color: white; }
-        .btn-stop { background: #e53e3e; color: white; }
-
-        #display-area { margin-top: 25px; text-align: center; }
-        #display-area img, #webcam-container canvas {
-            max-width: 100%;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-            border: 4px solid white;
-        }
-
-        .results-panel {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 15px;
-            display: none;
-        }
-
-        .result-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .label-name { width: 130px; font-weight: 600; font-size: 0.85rem; color: #4a5568; }
-        .bar-outer { flex-grow: 1; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
-        .bar-inner { height: 100%; background: var(--ua-blue); transition: width 0.5s ease; }
-        .percentage { width: 45px; text-align: right; font-size: 0.85rem; font-weight: bold; color: var(--ua-blue); }
-
-        .footer-info {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.75rem;
-            color: #a0aec0;
-            background: #fdfdfd;
-            border-top: 1px solid #edf2f7;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header">
-        <h1>Puff Pastry Recognition</h1>
-        <p>Technology Driven Design 2025-2026</p>
-    </div>
-
-    <div class="main-content">
-        <div class="instruction-box">
-            <strong>Challenge:</strong> Pastries often look similar, making it difficult to identify fillings[cite: 5]. 
-            Point your camera or upload a photo to classify the filling[cite: 9].
-        </div>
-
-        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
-            <div style="font-size: 2.5rem; margin-bottom: 10px;">📷</div>
-            <p>Click to upload a pastry image</p>
-            <input type="file" id="file-input" hidden accept="image/*">
-        </div>
-
-        <div class="btn-container">
-            <button class="btn btn-file" onclick="document.getElementById('file-input').click()">📂 Open File</button>
-            <button class="btn btn-webcam" id="webcam-btn" onclick="toggleWebcam()">🎥 Live Camera</button>
-        </div>
-
-        <div id="display-area"></div>
-        <div id="webcam-container"></div>
-
-        <div id="results" class="results-panel">
-            <h3 style="margin-bottom: 15px; font-size: 1.1rem;">Classification Prediction:</h3>
-            <div id="label-container"></div>
-            <p style="font-size: 0.75rem; color: #718096; margin-top: 15px;">
-                Note: Accuracy is highest in close-up images[cite: 13].
-            </p>
-        </div>
-    </div>
-
-    <div class="footer-info">
-        University of Antwerp | Louise Van Impe | S0224520 [cite: 57, 59]
-    </div>
-</div>
-
-<script>
-    const URL = "./my_model/";
-    let model, webcam, labelContainer, isWebcamActive = false;
-
-    async function init() {
-        try {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            model = await tmImage.load(modelURL, metadataURL);
-            labelContainer = document.getElementById("label-container");
-            console.log("Model loaded successfully");
-        } catch (e) {
-            alert("Error loading model. Please check the 'my_model' folder.");
-        }
-    }
-
-    document.getElementById('file-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if(isWebcamActive) stopWebcam();
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = async () => {
-                const area = document.getElementById('display-area');
-                area.innerHTML = '';
-                area.appendChild(img);
-                const prediction = await model.predict(img);
-                displayResults(prediction);
-            };
-        };
-        reader.readAsDataURL(file);
-    });
-
-    async function toggleWebcam() {
-        const btn = document.getElementById('webcam-btn');
-        if (isWebcamActive) {
-            stopWebcam();
-            btn.innerText = "🎥 Live Camera";
-            btn.className = "btn btn-webcam";
-        } else {
-            await startWebcam();
-            btn.innerText = "🛑 Stop Camera";
-            btn.className = "btn btn-stop";
-        }
-    }
-
-    async function startWebcam() {
-        try {
-            isWebcamActive = true;
-            document.getElementById('display-area').innerHTML = '';
-            webcam = new tmImage.Webcam(400, 400, true);
-            await webcam.setup();
-            await webcam.play();
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            window.requestAnimationFrame(loop);
-        } catch (e) {
-            alert("Camera access denied.");
-            stopWebcam();
-        }
-    }
-
-    function stopWebcam() {
-        isWebcamActive = false;
-        if (webcam) webcam.stop();
-        document.getElementById("webcam-container").innerHTML = '';
-    }
-
-    async function loop() {
-        if (!isWebcamActive) return;
-        webcam.update();
-        const prediction = await model.predict(webcam.canvas);
-        displayResults(prediction);
-        window.requestAnimationFrame(loop);
-    }
-
-    function displayResults(predictions) {
-        document.getElementById("results").style.display = "block";
-        labelContainer.innerHTML = "";
-        predictions.sort((a, b) => b.probability - a.probability);
-
-        predictions.forEach(p => {
-            const score = (p.probability * 100).toFixed(0);
-            if(score > 2) {
-                const html = `
-                    <div class="result-row">
-                        <span class="label-name">${p.className}</span>
-                        <div class="bar-outer">
-                            <div class="bar-inner" style="width: ${score}%"></div>
-                        </div>
-                        <span class="percentage">${score}%</span>
-                    </div>`;
-                labelContainer.innerHTML += html;
-            }
-        });
-    }
-
-    init();
-</script>
-</body>
-</html>
+            border-left: 5px solid var(--ua-blue);
+            padding:
