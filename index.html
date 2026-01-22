@@ -3,192 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Model Classifier</title>
+    <title>Snack Classifier AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f2f5;
             display: flex;
             justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
         }
-        .container {
-            max-width: 800px;
+        .app-container {
             width: 100%;
+            max-width: 500px;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         .header {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .main-content { padding: 40px; }
-        .upload-section {
-            border: 3px dashed #2196F3;
-            border-radius: 15px;
-            padding: 40px;
-            text-align: center;
-            background: #f8f9ff;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .upload-section:hover { background: #f0f4ff; border-color: #1976D2; }
-        .file-input { display: none; }
-        .upload-btn {
             background: #2196F3;
             color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-size: 1rem;
-            cursor: pointer;
-            margin: 10px;
+            padding: 30px 20px;
+            text-align: center;
         }
-        .webcam-btn { background: #4CAF50; }
-        .image-preview { text-align: center; margin: 20px 0; }
-        .preview-image { max-width: 100%; max-height: 300px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .results {
-            margin-top: 30px;
+        .main-content { padding: 25px; }
+        .upload-card {
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #f8fafc;
+        }
+        .upload-card:hover { border-color: #2196F3; background: #eff6ff; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-webcam { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        #preview-container { margin-top: 20px; text-align: center; }
+        #preview-container img, #webcam-container canvas {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .results-section {
+            margin-top: 25px;
             padding: 20px;
-            background: #f1f3f5;
+            background: #f8fafc;
             border-radius: 15px;
             display: none;
         }
-        .result-item {
+        .prediction-bar {
             display: flex;
             align-items: center;
-            margin: 10px 0;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
+            margin-bottom: 12px;
         }
-        .result-label { flex: 1; font-weight: bold; }
-        .confidence-bar { width: 150px; height: 10px; background: #ddd; border-radius: 5px; margin: 0 15px; overflow: hidden; }
-        .confidence-fill { height: 100%; background: #2196F3; }
-        .error { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; text-align: center; }
-        #webcam-container canvas { border-radius: 10px; width: 100% !important; height: auto !important; max-width: 400px; }
-        .loading-spinner { display: none; text-align: center; margin: 20px; }
+        .label { width: 140px; font-size: 0.9rem; font-weight: 600; }
+        .progress-bg { flex-grow: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 0 10px; }
+        .progress-fill { height: 100%; background: #2196F3; transition: width 0.4s ease-out; }
+        .percent { width: 40px; font-size: 0.85rem; text-align: right; color: #64748b; }
+        
+        #status { text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="app-container">
     <div class="header">
-        <h1>🤖 AI Product Classifier</h1>
-        <p>Herken Chicken curry, Leek puff pastry, en meer!</p>
+        <h1>🥐 Snack AI</h1>
+        <p>Herken bladerdeeghapjes direct</p>
     </div>
 
     <div class="main-content">
-        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
-            <div style="font-size: 3rem; margin-bottom: 10px;">📸</div>
-            <h3>Klik om een foto te uploaden</h3>
-            <p>Of gebruik de knoppen hieronder</p>
-            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        <div class="upload-card" onclick="document.getElementById('file-input').click()">
+            <span style="font-size: 2.5rem;">📸</span>
+            <p style="margin-top: 10px; color: #475569;">Klik om een foto te uploaden</p>
+            <input type="file" id="file-input" hidden accept="image/*">
         </div>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 Bestand Kiezen</button>
-            <button class="upload-btn webcam-btn" id="webcamToggle" onclick="toggleWebcam()">🎥 Start Webcam</button>
+        <div class="btn-group">
+            <button class="btn btn-webcam" id="webcam-btn" onclick="toggleWebcam()">🎥 Live Camera</button>
         </div>
 
-        <div id="loading" class="loading-spinner">Bezig met laden...</div>
-        <div id="error" class="error"></div>
+        <div id="status">Bezig met laden van AI model...</div>
 
-        <div id="image-preview" class="image-preview"></div>
-        <div id="webcam-container" style="text-align: center;"></div>
+        <div id="preview-container"></div>
+        <div id="webcam-container"></div>
 
-        <div id="results" class="results">
-            <h3 style="margin-bottom: 15px;">🎯 Resultaten:</h3>
+        <div id="results" class="results-section">
+            <h3 style="margin-bottom: 15px; color: #1e293b;">Analyse resultaat:</h3>
             <div id="label-container"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // PAS DIT PAD AAN: Zorg dat je model.json in de map 'my_model' staat
-    const MODEL_URL = "./my_model/";
+    // Het pad naar je mapje op GitHub
+    const MODEL_PATH = "./my_model/";
 
     let model, webcam, labelContainer, maxPredictions;
     let isWebcamActive = false;
 
-    // Model laden bij opstarten
+    // 1. Model laden bij start
     async function init() {
-        const loadingDiv = document.getElementById("loading");
-        loadingDiv.style.display = "block";
-        
         try {
-            const modelURL = MODEL_URL + "model.json";
-            const metadataURL = MODEL_URL + "metadata.json";
+            const modelURL = MODEL_PATH + "model.json";
+            const metadataURL = MODEL_PATH + "metadata.json";
 
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
-
+            
+            document.getElementById('status').innerText = "✅ Model klaar voor gebruik";
             labelContainer = document.getElementById("label-container");
-            loadingDiv.style.display = "none";
-            console.log("Model geladen!");
         } catch (e) {
-            showError("Fout: Kan model niet laden. Zorg dat model.json in de map 'my_model' staat.");
-            loadingDiv.style.display = "none";
+            console.error(e);
+            document.getElementById('status').innerText = "❌ Fout: Modelbestanden niet gevonden.";
+            document.getElementById('status').style.color = "red";
         }
     }
 
-    // Bestand uploaden afhandelen
-    document.getElementById('fileInput').addEventListener('change', async (e) => {
-        if (isWebcamActive) stopWebcam();
+    // 2. Foto upload verwerken
+    document.getElementById('file-input').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const imgElement = document.createElement('img');
-            imgElement.src = event.target.result;
-            imgElement.classList.add('preview-image');
-            
-            const previewDiv = document.getElementById('image-preview');
-            previewDiv.innerHTML = '';
-            previewDiv.appendChild(imgElement);
+        if(isWebcamActive) stopWebcam();
 
-            imgElement.onload = async () => {
-                const prediction = await model.predict(imgElement);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = async () => {
+                const container = document.getElementById('preview-container');
+                container.innerHTML = '';
+                container.appendChild(img);
+                
+                const prediction = await model.predict(img);
                 displayResults(prediction);
             };
         };
         reader.readAsDataURL(file);
     });
 
-    // Webcam functies
+    // 3. Webcam logica
     async function toggleWebcam() {
-        const btn = document.getElementById("webcamToggle");
+        const btn = document.getElementById('webcam-btn');
         if (isWebcamActive) {
             stopWebcam();
-            btn.innerText = "🎥 Start Webcam";
-            btn.style.background = "#4CAF50";
+            btn.innerText = "🎥 Live Camera";
+            btn.className = "btn btn-webcam";
         } else {
+            btn.innerText = "⌛ Starten...";
             await startWebcam();
-            btn.innerText = "🛑 Stop Webcam";
-            btn.style.background = "#f44336";
+            btn.innerText = "🛑 Stop Camera";
+            btn.className = "btn btn-stop";
         }
     }
 
     async function startWebcam() {
         try {
             isWebcamActive = true;
-            document.getElementById('image-preview').innerHTML = '';
-            webcam = new tmImage.Webcam(400, 400, true);
+            document.getElementById('preview-container').innerHTML = '';
+            
+            // Voor mobiel: gebruik 'facingMode: environment' voor de achtercamera indien beschikbaar
+            webcam = new tmImage.Webcam(400, 400, true); 
             await webcam.setup();
             await webcam.play();
-            window.requestAnimationFrame(loop);
+            
             document.getElementById("webcam-container").appendChild(webcam.canvas);
+            window.requestAnimationFrame(loop);
         } catch (e) {
-            showError("Geen toegang tot webcam.");
+            alert("Webcam niet beschikbaar of geblokkeerd.");
+            stopWebcam();
         }
     }
 
@@ -206,34 +211,31 @@
         window.requestAnimationFrame(loop);
     }
 
+    // 4. Resultaten tonen
     function displayResults(predictions) {
         document.getElementById("results").style.display = "block";
         labelContainer.innerHTML = "";
         
-        // Sorteer op hoogste score
+        // Sorteer: Hoogste waarschijnlijkheid bovenaan
         predictions.sort((a, b) => b.probability - a.probability);
 
         predictions.forEach(p => {
-            const percentage = (p.probability * 100).toFixed(0);
-            const row = `
-                <div class="result-item">
-                    <span class="result-label">${p.className}</span>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" style="width: ${percentage}%"></div>
+            const score = (p.probability * 100).toFixed(0);
+            if(score > 5) { // Toon alleen resultaten boven 5%
+                const html = `
+                    <div class="prediction-bar">
+                        <span class="label">${p.className}</span>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${score}%"></div>
+                        </div>
+                        <span class="percent">${score}%</span>
                     </div>
-                    <span style="width: 40px; text-align: right;">${percentage}%</span>
-                </div>`;
-            labelContainer.innerHTML += row;
+                `;
+                labelContainer.innerHTML += html;
+            }
         });
     }
 
-    function showError(msg) {
-        const errDiv = document.getElementById("error");
-        errDiv.innerText = msg;
-        errDiv.style.display = "block";
-    }
-
-    // Start de applicatie
     init();
 </script>
 </body>
