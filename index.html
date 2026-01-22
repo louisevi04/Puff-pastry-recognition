@@ -1,68 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puff Pastry Recognition 🥐</title>
+    <title>Snack Classifier AI</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
-        :root {
-            --ua-blue: #2196F3;
-            --ua-dark-blue: #1976D2;
-            --text-main: #2d3748;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--text-main);
-            line-height: 1.6;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f2f5;
             display: flex;
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            
-            /* Checkered Blue Background */
-            background-color: #4facfe;
-            background-image:
-                linear-gradient(45deg, #378bda 25%, transparent 25%, transparent 75%, #378bda 75%, #378bda),
-                linear-gradient(45deg, #378bda 25%, transparent 25%, transparent 75%, #378bda 75%, #378bda);
-            background-position: 0 0, 25px 25px;
-            background-size: 50px 50px;
         }
-
-        .container {
-            max-width: 650px;
+        .app-container {
             width: 100%;
+            max-width: 500px;
             background: white;
-            border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             overflow: hidden;
-            border: 4px solid white;
+            display: flex;
+            flex-direction: column;
         }
-
         .header {
-            background: linear-gradient(135deg, var(--ua-blue), var(--ua-dark-blue));
+            background: #2196F3;
             color: white;
-            padding: 40px 30px;
+            padding: 30px 20px;
             text-align: center;
         }
-
-        .header h1 {
-            font-size: 1.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        .main-content { padding: 25px; }
+        .upload-card {
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #f8fafc;
         }
+        .upload-card:hover { border-color: #2196F3; background: #eff6ff; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-webcam { background: #10b981; color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+        
+        #preview-container { margin-top: 20px; text-align: center; }
+        #preview-container img, #webcam-container canvas {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .results-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 15px;
+            display: none;
+        }
+        .prediction-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .label { width: 140px; font-size: 0.9rem; font-weight: 600; }
+        .progress-bg { flex-grow: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 0 10px; }
+        .progress-fill { height: 100%; background: #2196F3; transition: width 0.4s ease-out; }
+        .percent { width: 40px; font-size: 0.85rem; text-align: right; color: #64748b; }
+        
+        #status { text-align: center; font-size: 0.8rem; color: #94a3b8; margin-top: 10px; }
+    </style>
+</head>
+<body>
 
-        .header p { opacity: 0.95; font-weight: 400; font-size: 1rem; }
+<div class="app-container">
+    <div class="header">
+        <h1>🥐 Snack AI</h1>
+        <p>Herken bladerdeeghapjes direct</p>
+    </div>
 
-        .main-content { padding: 30px; }
+    <div class="main-content">
+        <div class="upload-card" onclick="document.getElementById('file-input').click()">
+            <span style="font-size: 2.5rem;">📸</span>
+            <p style="margin-top: 10px; color: #475569;">Klik om een foto te uploaden</p>
+            <input type="file" id="file-input" hidden accept="image/*">
+        </div>
 
-        .instruction-box {
-            background: #ebf8ff;
-            border-left: 5px solid var(--ua-blue);
-            padding:
+        <div class="btn-group">
+            <button class="btn btn-webcam" id="webcam-btn" onclick="toggleWebcam()">🎥 Live Camera</button>
+        </div>
+
+        <div id="status">Bezig met laden van AI model...</div>
+
+        <div id="preview-container"></div>
+        <div id="webcam-container"></div>
+
+        <div id="results" class="results-section">
+            <h3 style="margin-bottom: 15px; color: #1e293b;">Analyse resultaat:</h3>
+            <div id="label-container"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Het pad naar je mapje op GitHub
+    const MODEL_PATH = "./my_model/";
+
+    let model, webcam, labelContainer, maxPredictions;
+    let isWebcamActive = false;
+
+    // 1. Model laden bij start
+    async function init() {
+        try {
+            const modelURL = MODEL_PATH + "model.json";
+            const metadataURL = MODEL_PATH + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+            
+            document.getElementById('status').innerText = "✅ Model klaar voor gebruik";
+            labelContainer = document.getElementById("label-container");
+        } catch (e) {
+            console.error(e);
+            document.getElementById('status').innerText = "❌ Fout: Modelbestanden niet gevonden.";
+            document.getElementById('status').style.color = "red";
+        }
+    }
+
+    // 2. Foto upload verwerken
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if(isWebcamActive) stopWebcam();
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = async () => {
+                const container = document.getElementById('preview-container');
+                container.innerHTML = '';
+                container.appendChild(img);
+                
+                const prediction = await model.predict(img);
+                displayResults(prediction);
+            };
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 3. Webcam logica
+    async function toggleWebcam() {
+        const btn = document.getElementById('webcam-btn');
+        if (isWebcamActive) {
+            stopWebcam();
+            btn.innerText = "🎥 Live Camera";
+            btn.className = "btn btn-webcam";
+        } else {
+            btn.innerText = "⌛ Starten...";
+            await startWebcam();
+            btn.innerText = "🛑 Stop Camera";
+            btn.className = "btn btn-stop";
+        }
+    }
+
+    async function startWebcam() {
+        try {
+            isWebcamActive = true;
+            document.getElementById('preview-container').innerHTML = '';
+            
+            // Voor mobiel: gebruik 'facingMode: environment' voor de achtercamera indien beschikbaar
+            webcam = new tmImage.Webcam(400, 400, true); 
+            await webcam.setup();
+            await webcam.play();
+            
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            window.requestAnimationFrame(loop);
+        } catch (e) {
+            alert("Webcam niet beschikbaar of geblokkeerd.");
+            stopWebcam();
+        }
+    }
+
+    function stopWebcam() {
+        isWebcamActive = false;
+        if (webcam) webcam.stop();
+        document.getElementById("webcam-container").innerHTML = '';
+    }
+
+    async function loop() {
+        if (!isWebcamActive) return;
+        webcam.update();
+        const prediction = await model.predict(webcam.canvas);
+        displayResults(prediction);
+        window.requestAnimationFrame(loop);
+    }
+
+    // 4. Resultaten tonen
+    function displayResults(predictions) {
+        document.getElementById("results").style.display = "block";
+        labelContainer.innerHTML = "";
+        
+        // Sorteer: Hoogste waarschijnlijkheid bovenaan
+        predictions.sort((a, b) => b.probability - a.probability);
+
+        predictions.forEach(p => {
+            const score = (p.probability * 100).toFixed(0);
+            if(score > 5) { // Toon alleen resultaten boven 5%
+                const html = `
+                    <div class="prediction-bar">
+                        <span class="label">${p.className}</span>
+                        <div class="progress-bg">
+                            <div class="progress-fill" style="width: ${score}%"></div>
+                        </div>
+                        <span class="percent">${score}%</span>
+                    </div>
+                `;
+                labelContainer.innerHTML += html;
+            }
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>
