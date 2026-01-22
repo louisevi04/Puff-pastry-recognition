@@ -7,497 +7,234 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            display: flex;
+            justify-content: center;
         }
-
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
             overflow: hidden;
         }
-
         .header {
             background: linear-gradient(135deg, #2196F3, #1976D2);
             color: white;
             padding: 30px;
             text-align: center;
         }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .main-content {
-            padding: 40px;
-        }
-
+        .main-content { padding: 40px; }
         .upload-section {
             border: 3px dashed #2196F3;
             border-radius: 15px;
             padding: 40px;
             text-align: center;
-            margin-bottom: 30px;
             background: #f8f9ff;
-            transition: all 0.3s ease;
             cursor: pointer;
+            transition: 0.3s;
         }
-
-        .upload-section:hover {
-            border-color: #1976D2;
-            background: #f0f4ff;
-            transform: translateY(-2px);
-        }
-
-        .upload-section.dragover {
-            border-color: #1976D2;
-            background: #e3f2fd;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 4rem;
-            color: #2196F3;
-            margin-bottom: 20px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
+        .upload-section:hover { background: #f0f4ff; border-color: #1976D2; }
+        .file-input { display: none; }
         .upload-btn {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
+            background: #2196F3;
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 12px 25px;
             border-radius: 50px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
             margin: 10px;
         }
-
-        .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(33, 150, 243, 0.3);
-        }
-
-        .webcam-btn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-        }
-
-        .webcam-btn:hover {
-            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
-        }
-
-        .image-preview {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .preview-image {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .webcam-container {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        #webcam {
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
+        .webcam-btn { background: #4CAF50; }
+        .image-preview { text-align: center; margin: 20px 0; }
+        .preview-image { max-width: 100%; max-height: 300px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .results {
             margin-top: 30px;
-            padding: 25px;
-            background: #f8f9ff;
+            padding: 20px;
+            background: #f1f3f5;
             border-radius: 15px;
-            border-left: 5px solid #2196F3;
+            display: none;
         }
-
         .result-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin: 15px 0;
-            padding: 15px;
+            margin: 10px 0;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 8px;
         }
-
-        .result-label {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1rem;
-        }
-
-        .result-confidence {
-            font-weight: bold;
-            color: #2196F3;
-            font-size: 1.2rem;
-        }
-
-        .confidence-bar {
-            width: 200px;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 0 15px;
-        }
-
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2196F3;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .controls {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 5px;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
-        }
-
-        .error {
-            background: #ffebee;
-            border: 1px solid #f44336;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .main-content {
-                padding: 20px;
-            }
-            
-            .confidence-bar {
-                width: 100px;
-            }
-            
-            .result-item {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
+        .result-label { flex: 1; font-weight: bold; }
+        .confidence-bar { width: 150px; height: 10px; background: #ddd; border-radius: 5px; margin: 0 15px; overflow: hidden; }
+        .confidence-fill { height: 100%; background: #2196F3; }
+        .error { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; text-align: center; }
+        #webcam-container canvas { border-radius: 10px; width: 100% !important; height: auto !important; max-width: 400px; }
+        .loading-spinner { display: none; text-align: center; margin: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🤖 AI Classifier</h1>
-            <p>Upload een afbeelding of gebruik je webcam voor real-time classificatie</p>
-        </div>
-        
-        <div class="main-content">
-            <div class="upload-section" id="uploadSection">
-                <div class="upload-icon">📷</div>
-                <h3>Sleep een afbeelding hierheen of klik om te uploaden</h3>
-                <p style="margin: 10px 0; color: #666;">Ondersteunde formaten: JPG, PNG, GIF</p>
-                <input type="file" id="fileInput" class="file-input" accept="image/*">
-                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                    📂 Kies Bestand
-                </button>
-                <button class="upload-btn webcam-btn" onclick="toggleWebcam()">
-                    🎥 Webcam
-                </button>
-            </div>
 
-            <div class="image-preview" id="imagePreview"></div>
-            
-            <div class="webcam-container" id="webcamContainer" style="display: none;">
-                <div id="webcam"></div>
-                <div class="controls">
-                    <button class="btn" onclick="stopWebcam()">Stop Webcam</button>
-                </div>
-            </div>
-
-            <div id="loading" class="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Model wordt geladen...</p>
-            </div>
-
-            <div id="results" class="results" style="display: none;">
-                <h3>🎯 Classificatie Resultaten</h3>
-                <div id="resultsList"></div>
-            </div>
-
-            <div id="error" class="error" style="display: none;"></div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🤖 AI Product Classifier</h1>
+        <p>Herken Chicken curry, Leek puff pastry, en meer!</p>
     </div>
 
-    <script>
-        let model;
-        let webcam;
-        let isWebcamActive = false;
-        let maxPredictions;
+    <div class="main-content">
+        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 3rem; margin-bottom: 10px;">📸</div>
+            <h3>Klik om een foto te uploaden</h3>
+            <p>Of gebruik de knoppen hieronder</p>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+        </div>
 
-        // Model URL - pas deze aan naar je eigen model locatie
-        const URL = './my_model/';
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 Bestand Kiezen</button>
+            <button class="upload-btn webcam-btn" id="webcamToggle" onclick="toggleWebcam()">🎥 Start Webcam</button>
+        </div>
 
-        // Initialize the application
-        async function init() {
-            try {
-                showLoading(true);
-                const modelURL = URL + 'model.json';
-                const metadataURL = URL + 'metadata.json';
+        <div id="loading" class="loading-spinner">Bezig met laden...</div>
+        <div id="error" class="error"></div>
 
-                model = await tmImage.load(modelURL, metadataURL);
-                maxPredictions = model.getTotalClasses();
-                showLoading(false);
-                console.log('Model successfully loaded!');
-            } catch (error) {
-                showError('Fout bij het laden van het model. Zorg ervoor dat de model bestanden correct zijn geüpload.');
-                console.error('Model loading error:', error);
-                showLoading(false);
-            }
-        }
+        <div id="image-preview" class="image-preview"></div>
+        <div id="webcam-container" style="text-align: center;"></div>
 
-        // File upload handling
-        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        <div id="results" class="results">
+            <h3 style="margin-bottom: 15px;">🎯 Resultaten:</h3>
+            <div id="label-container"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // PAS DIT PAD AAN: Zorg dat je model.json in de map 'my_model' staat
+    const MODEL_URL = "./my_model/";
+
+    let model, webcam, labelContainer, maxPredictions;
+    let isWebcamActive = false;
+
+    // Model laden bij opstarten
+    async function init() {
+        const loadingDiv = document.getElementById("loading");
+        loadingDiv.style.display = "block";
         
-        // Drag and drop functionality
-        const uploadSection = document.getElementById('uploadSection');
-        
-        uploadSection.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadSection.classList.add('dragover');
-        });
-        
-        uploadSection.addEventListener('dragleave', () => {
-            uploadSection.classList.remove('dragover');
-        });
-        
-        uploadSection.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadSection.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
+        try {
+            const modelURL = MODEL_URL + "model.json";
+            const metadataURL = MODEL_URL + "metadata.json";
 
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            labelContainer = document.getElementById("label-container");
+            loadingDiv.style.display = "none";
+            console.log("Model geladen!");
+        } catch (e) {
+            showError("Fout: Kan model niet laden. Zorg dat model.json in de map 'my_model' staat.");
+            loadingDiv.style.display = "none";
         }
+    }
 
-        function handleFile(file) {
-            if (!file.type.startsWith('image/')) {
-                showError('Selecteer alstublieft een geldige afbeelding.');
-                return;
-            }
+    // Bestand uploaden afhandelen
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+        if (isWebcamActive) stopWebcam();
+        const file = e.target.files[0];
+        if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                displayImage(e.target.result);
-                classifyImage(e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const imgElement = document.createElement('img');
+            imgElement.src = event.target.result;
+            imgElement.classList.add('preview-image');
+            
+            const previewDiv = document.getElementById('image-preview');
+            previewDiv.innerHTML = '';
+            previewDiv.appendChild(imgElement);
 
-        function displayImage(imageSrc) {
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = `<img src="${imageSrc}" alt="Preview" class="preview-image">`;
-            hideError();
-        }
-
-        async function classifyImage(imageSrc) {
-            if (!model) {
-                showError('Model is nog niet geladen. Probeer het over een paar seconden opnieuw.');
-                return;
-            }
-
-            try {
-                showLoading(true);
-                
-                // Create image element
-                const image = new Image();
-                image.onload = async function() {
-                    const prediction = await model.predict(image);
-                    displayResults(prediction);
-                    showLoading(false);
-                };
-                image.src = imageSrc;
-            } catch (error) {
-                showError('Fout bij het classificeren van de afbeelding.');
-                console.error('Classification error:', error);
-                showLoading(false);
-            }
-        }
-
-        async function toggleWebcam() {
-            if (isWebcamActive) {
-                stopWebcam();
-            } else {
-                await startWebcam();
-            }
-        }
-
-        async function startWebcam() {
-            if (!model) {
-                showError('Model is nog niet geladen. Probeer het over een paar seconden opnieuw.');
-                return;
-            }
-
-            try {
-                const flip = true;
-                webcam = new tmImage.Webcam(300, 300, flip);
-                await webcam.setup();
-                await webcam.play();
-                
-                document.getElementById('webcamContainer').style.display = 'block';
-                document.getElementById('webcam').appendChild(webcam.canvas);
-                document.getElementById('imagePreview').innerHTML = '';
-                
-                isWebcamActive = true;
-                window.requestAnimationFrame(loop);
-                hideError();
-            } catch (error) {
-                showError('Kan geen toegang krijgen tot de webcam. Controleer je browser permissies.');
-                console.error('Webcam error:', error);
-            }
-        }
-
-        async function loop() {
-            if (isWebcamActive) {
-                webcam.update();
-                await predict();
-                window.requestAnimationFrame(loop);
-            }
-        }
-
-        async function predict() {
-            try {
-                const prediction = await model.predict(webcam.canvas);
+            imgElement.onload = async () => {
+                const prediction = await model.predict(imgElement);
                 displayResults(prediction);
-            } catch (error) {
-                console.error('Prediction error:', error);
-            }
-        }
+            };
+        };
+        reader.readAsDataURL(file);
+    });
 
-        function stopWebcam() {
-            if (webcam) {
-                webcam.stop();
-                document.getElementById('webcamContainer').style.display = 'none';
-                document.getElementById('results').style.display = 'none';
-                isWebcamActive = false;
-            }
+    // Webcam functies
+    async function toggleWebcam() {
+        const btn = document.getElementById("webcamToggle");
+        if (isWebcamActive) {
+            stopWebcam();
+            btn.innerText = "🎥 Start Webcam";
+            btn.style.background = "#4CAF50";
+        } else {
+            await startWebcam();
+            btn.innerText = "🛑 Stop Webcam";
+            btn.style.background = "#f44336";
         }
+    }
 
-        function displayResults(predictions) {
-            const resultsList = document.getElementById('resultsList');
-            const results = document.getElementById('results');
-            
-            // Sort predictions by probability
-            predictions.sort((a, b) => b.probability - a.probability);
-            
-            let resultsHTML = '';
-            predictions.forEach((prediction, index) => {
-                const percentage = (prediction.probability * 100).toFixed(1);
-                const confidence = prediction.probability * 100;
-                
-                resultsHTML += `
-                    <div class="result-item">
-                        <span class="result-label">${prediction.className}</span>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${confidence}%"></div>
-                        </div>
-                        <span class="result-confidence">${percentage}%</span>
+    async function startWebcam() {
+        try {
+            isWebcamActive = true;
+            document.getElementById('image-preview').innerHTML = '';
+            webcam = new tmImage.Webcam(400, 400, true);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+        } catch (e) {
+            showError("Geen toegang tot webcam.");
+        }
+    }
+
+    function stopWebcam() {
+        isWebcamActive = false;
+        if (webcam) webcam.stop();
+        document.getElementById("webcam-container").innerHTML = '';
+    }
+
+    async function loop() {
+        if (!isWebcamActive) return;
+        webcam.update();
+        const prediction = await model.predict(webcam.canvas);
+        displayResults(prediction);
+        window.requestAnimationFrame(loop);
+    }
+
+    function displayResults(predictions) {
+        document.getElementById("results").style.display = "block";
+        labelContainer.innerHTML = "";
+        
+        // Sorteer op hoogste score
+        predictions.sort((a, b) => b.probability - a.probability);
+
+        predictions.forEach(p => {
+            const percentage = (p.probability * 100).toFixed(0);
+            const row = `
+                <div class="result-item">
+                    <span class="result-label">${p.className}</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${percentage}%"></div>
                     </div>
-                `;
-            });
-            
-            resultsList.innerHTML = resultsHTML;
-            results.style.display = 'block';
-        }
+                    <span style="width: 40px; text-align: right;">${percentage}%</span>
+                </div>`;
+            labelContainer.innerHTML += row;
+        });
+    }
 
-        function showLoading(show) {
-            document.getElementById('loading').style.display = show ? 'block' : 'none';
-        }
+    function showError(msg) {
+        const errDiv = document.getElementById("error");
+        errDiv.innerText = msg;
+        errDiv.style.display = "block";
+    }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('error').style.display = 'none';
-        }
-
-        // Initialize the model when the page loads
-        window.addEventListener('load', init);
-    </script>
+    // Start de applicatie
+    init();
+</script>
 </body>
 </html>
